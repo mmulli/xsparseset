@@ -88,6 +88,10 @@ impl<E,T> SparseSet<E,T>
         None
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.entities.len() == 0
+    }
+
     pub fn indices(&self) -> &[Option<NonZeroUsize>] {
         self.indices.as_slice()
     }
@@ -120,6 +124,12 @@ mod tests{
         assert_eq!(s1.data(),&['a','c','d']);
         println!("{:?}",s1);
 
+        assert_eq!(s1.get(4),None);
+        assert_eq!(s1.get(1),Some(&'d'));
+        *s1.get_mut(1).unwrap() = 'f';
+        assert_eq!(s1.get(1),Some(&'f'));
+        *s1.get_mut(1).unwrap() = 'd';
+
         assert_eq!(s1.remove(2),None);
         assert_eq!(s1.remove(5),Some('a'));
         assert_eq!(s1.entities(),&[1,3]);
@@ -128,5 +138,6 @@ mod tests{
         assert_eq!(s1.remove(1),Some('d'));
         assert_eq!(s1.remove(3),Some('c'));
         println!("{:?}",s1);
+        assert!(s1.is_empty());
     }
 }
