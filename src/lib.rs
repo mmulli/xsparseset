@@ -54,6 +54,38 @@ impl<E,T> SparseSet<E,T>
         None
     }
 
+    pub fn swap_by_index(&mut self,index_a : usize,index_b : usize) {
+        if index_a == index_b { return; }
+        if index_a >= self.len() {
+            panic!("index_a={} is out of range",index_a);
+        }
+        if index_b >= self.len() {
+            panic!("index_b={} is out of range",index_b);
+        }
+        let entity_a : usize = self.entities[index_a].into();
+        let entity_b : usize = self.entities[index_b].into();
+        self.indices.swap(entity_a,entity_b);
+        self.entities.swap(index_a,index_b);
+        self.data.swap(index_a,index_b);
+    }
+
+    pub fn swap_by_entity(&mut self,entity_a : E,entity_b : E) {
+        if !self.exist(entity_a) {
+            panic!("entity_a is not exist in sparse set");
+        }
+        if !self.exist(entity_b) {
+            panic!("entity_b is not exist in sparse set");
+        }
+        let entity_a : usize = entity_a.into();
+        let entity_b : usize = entity_b.into();
+        if entity_a == entity_b { return; }
+        let index_a = self.indices[entity_a].unwrap().get() - 1;
+        let index_b = self.indices[entity_b].unwrap().get() - 1;
+        self.indices.swap(entity_a,entity_b);
+        self.entities.swap(index_a,index_b);
+        self.data.swap(index_a,index_b);
+    }
+
     pub fn len(&self) -> usize {
         self.entities.len()
     }
@@ -88,6 +120,16 @@ impl<E,T> SparseSet<E,T>
         None
     }
 
+    pub fn get_index(&self,entity : E) -> Option<usize> {
+        let entity : usize = entity.into();
+        if entity < self.indices.len() {
+            if let Some(index) = self.indices[entity] {
+                return Some(index.get() - 1);
+            }
+        }
+        None
+    }
+
     pub fn is_empty(&self) -> bool {
         self.entities.len() == 0
     }
@@ -102,6 +144,10 @@ impl<E,T> SparseSet<E,T>
 
     pub fn data(&self) -> &[T] {
         self.data.as_slice()
+    }
+
+    pub unsafe fn data_mut(&mut self) -> &mut [T] {
+        self.data.as_mut_slice()
     }
 }
 
@@ -128,6 +174,8 @@ mod tests{
         assert_eq!(s1.get(1),Some(&'d'));
         *s1.get_mut(1).unwrap() = 'f';
         assert_eq!(s1.get(1),Some(&'f'));
+        assert_eq!(s1.get_index(3),Some(1));
+        println!("{:?}",s1);
         *s1.get_mut(1).unwrap() = 'd';
 
         assert_eq!(s1.remove(2),None);
@@ -139,5 +187,27 @@ mod tests{
         assert_eq!(s1.remove(3),Some('c'));
         println!("{:?}",s1);
         assert!(s1.is_empty());
+    }
+
+    #[test]
+    fn swap_test(){
+        let mut s1 = SparseSet::new();
+        s1.add(3usize,'a');
+        s1.add(5,'b');
+        s1.add(6,'c');
+        s1.add(2,'d');
+        assert_eq!(s1.entities(),&[3,5,6,2]);
+        assert_eq!(s1.data(),&['a','b','c','d']);
+        println!("{:?}",s1);
+
+        s1.swap_by_index(1,2);
+        assert_eq!(s1.entities(),&[3,6,5,2]);
+        assert_eq!(s1.data(),&['a','c','b','d']);
+        println!("{:?}",s1);
+
+        s1.swap_by_entity(2,3);
+        assert_eq!(s1.entities(),&[2,6,5,3]);
+        assert_eq!(s1.data(),&['d','c','b','a']);
+        println!("{:?}",s1);
     }
 }
