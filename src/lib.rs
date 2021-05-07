@@ -146,7 +146,7 @@ impl<E,T> SparseSet<E,T>
         self.data.as_slice()
     }
 
-    pub unsafe fn data_mut(&mut self) -> &mut [T] {
+    pub fn data_mut(&mut self) -> &mut [T] {
         self.data.as_mut_slice()
     }
 }
