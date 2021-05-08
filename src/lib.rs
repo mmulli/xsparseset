@@ -4,9 +4,9 @@ use std::num::NonZeroUsize;
 pub struct SparseSet<E,T>
     where E : Copy + Into<usize>,
           T : Sized{
-    indices : Vec<Option<NonZeroUsize>>,
-    entities :  Vec<E>,
-    data : Vec<T>
+    pub (in crate) indices : Vec<Option<NonZeroUsize>>,
+    pub (in crate) entities :  Vec<E>,
+    pub (in crate) data : Vec<T>
 }
 
 impl<E,T> SparseSet<E,T>
@@ -149,6 +149,21 @@ impl<E,T> SparseSet<E,T>
     pub fn data_mut(&mut self) -> &mut [T] {
         self.data.as_mut_slice()
     }
+
+    pub fn entity_iter(&self) -> impl Iterator<Item=(E,&T)> {
+        self.entities
+            .iter()
+            .map(|x|*x)
+            .zip(self.data
+                .iter())
+    }
+    pub fn entity_iter_mut(&mut self) -> impl Iterator<Item=(E,&mut T)> {
+        self.entities
+            .iter()
+            .map(|x|*x)
+            .zip(self.data
+                .iter_mut())
+    }
 }
 
 #[cfg(test)]
@@ -209,5 +224,33 @@ mod tests{
         assert_eq!(s1.entities(),&[2,6,5,3]);
         assert_eq!(s1.data(),&['d','c','b','a']);
         println!("{:?}",s1);
+    }
+    #[test]
+    fn iter_test(){
+        let mut ss = SparseSet::new();
+        ss.add(3usize,'a');
+        ss.add(4,'b');
+        ss.add(7,'c');
+        ss.add(1,'d');
+        ss.add(2,'e');
+
+        {
+            let mut itr = ss.entity_iter();
+            assert_eq!(itr.next(), Some((3, &'a')));
+            assert_eq!(itr.next(), Some((4, &'b')));
+            assert_eq!(itr.next(), Some((7, &'c')));
+            assert_eq!(itr.next(), Some((1, &'d')));
+            assert_eq!(itr.next(), Some((2, &'e')));
+            assert_eq!(itr.next(), None);
+        }
+        {
+            let mut itr = ss.entity_iter_mut();
+            if let Some((_, ch)) = itr.next() {
+                *ch = '1';
+            } else {
+                panic!();
+            }
+        }
+        assert_eq!(ss.data().first().unwrap(),&'1');
     }
 }
