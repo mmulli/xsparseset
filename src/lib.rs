@@ -86,6 +86,41 @@ impl<E,T> SparseSet<E,T>
         self.data.swap(index_a,index_b);
     }
 
+    /// Build a group in the longer one's ```index``` position
+    /// it return the length of group
+    /// Ai: 0 1 2 3 4 5 6 7 8 9
+    /// A : x x x x a b c d x x
+    /// B :         a b c d x
+    /// Bi:         0 1 2 3 4
+    /// ## Panics:
+    /// Panic if index is out of the bound of the longer one
+    pub fn make_group_in<U : Sized>(&mut self,other : &mut SparseSet<E,U>,index : usize) -> usize{
+        let mut len = 0;
+        let mut index = index;
+        if self.len() > other.len() {
+            for index_b in 0..other.len() {
+                let entity_id = unsafe { other.entities.get_unchecked(index_b) };
+                if let Some(index_a) = self.get_index(*entity_id) {
+                    self.swap_by_index(index,index_a);
+                    other.swap_by_index(index_b,len);
+                    len += 1;
+                    index += 1;
+                }
+            }
+        }else{
+            for index_a in 0..self.len() {
+                let entity_id = unsafe { self.entities.get_unchecked(index_a) };
+                if let Some(index_b) = other.get_index(*entity_id) {
+                    self.swap_by_index(len,index_a);
+                    other.swap_by_index(index_b,index);
+                    len += 1;
+                    index += 1;
+                }
+            }
+        }
+        len
+    }
+
     pub fn len(&self) -> usize {
         self.entities.len()
     }
@@ -252,5 +287,29 @@ mod tests{
             }
         }
         assert_eq!(ss.data().first().unwrap(),&'1');
+    }
+
+    #[test]
+    fn group_test(){
+        let mut ss1 = SparseSet::new();
+        ss1.add(3usize,'a');
+        ss1.add(4,'b');
+        ss1.add(7,'c');
+        ss1.add(1,'d');
+        ss1.add(2,'e');
+
+        let mut ss2 = SparseSet::new();
+        ss2.add(2usize,1);
+        ss2.add(1,3);
+        ss2.add(3,5);
+        ss2.add(5,7);
+
+        let len = ss1.make_group_in(&mut ss2,1);
+        println!("{:?}",ss1.entities());
+        println!("   {:?}",ss2.entities());
+        println!("{}",len);
+        assert_eq!(ss1.entities(),[7,2,1,3,4]);
+        assert_eq!(ss2.entities(),[2,1,3,5]);
+        assert_eq!(len,3);
     }
 }
