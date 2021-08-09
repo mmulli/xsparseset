@@ -177,6 +177,10 @@ impl<E,T> SparseSet<E,T>
         self.entities.as_slice()
     }
 
+    pub fn entities_mut(&mut self) -> &mut [E] {
+        self.entities.as_mut_slice()
+    }
+
     pub fn data(&self) -> &[T] {
         self.data.as_slice()
     }
