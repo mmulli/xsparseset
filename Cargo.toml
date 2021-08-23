@@ -6,7 +6,7 @@ description = "A rust sparse set"
 readme = "README.md"
 repository = "https://github.com/xstater/xsparseset/"
 license = "MIT"
-keywords = ["sparse set","data-structure","ecs",]
+keywords = ["sparse-set","data-structure","ecs",]
 categories = ["data-structures"]
 
 
