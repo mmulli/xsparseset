@@ -1,5 +1,31 @@
+//! # XSparseSet
+//! sparse set is a data-structure with fast iteration and getting data from sparse ID
+//! # sparse set
+//! Sparse set has 2 arrays,the sparse array 'S' and dense array 'D'.
+//! The 'S' and 'D' array must satisfy 2 rules :
+//! * ```S[ID] == index```
+//! * ```D[index] = ID``` <br>
+//! These 2 rules make us get data from ID quickly and we can store all data densely.
+//! # Details
+//! Because we need store data and entity ID. XSparseSet has 3 arrays , "indices" "entities" and "data".
+//! * indices : the sparse array
+//! * entities : the dense array
+//! * data : the dense array
+//! # Examples
+//! ```
+//! # use xsparseset::SparseSet;
+//! let mut sparse_set = SparseSet::new();
+//! sparse_set.add(4,'c');
+//! sparse_set.add(7,'a');
+//! assert_eq!(sparse_set.get(4),Some(&'c'));
+//! assert_eq!(sparse_set.get(5),None);
+//! ```
 use std::num::NonZeroUsize;
 
+/// the sparse set
+/// ### Details
+/// E is the type of ID.<br>
+/// E must be ```Into<usize>``` because it need be index of Vec.
 #[derive(Debug,Clone)]
 pub struct SparseSet<E,T>
     where E : Copy + Into<usize>,
@@ -13,6 +39,7 @@ impl<E,T> SparseSet<E,T>
     where E : Copy + Into<usize>,
           T : Sized {
 
+    /// Create a empty sparse set
     pub fn new() -> Self {
         SparseSet{
             indices: vec![],
@@ -21,6 +48,9 @@ impl<E,T> SparseSet<E,T>
         }
     }
 
+    /// Add an entity with data into sparse set.
+    /// ### Details
+    /// Overwrite if entity already exists in sparse set.
     pub fn add(&mut self,entity : E,data : T) {
         let entity_ : usize = entity.into();
         //enlarge sparse
@@ -39,6 +69,9 @@ impl<E,T> SparseSet<E,T>
         }
     }
 
+    /// Remove an entity from sparse set.
+    /// ### Details
+    /// return None if entity doesn't exist in sparse set.
     pub fn remove(&mut self,entity : E) -> Option<T> {
         let entity : usize = entity.into();
         if self.indices.len() < entity {
@@ -54,6 +87,9 @@ impl<E,T> SparseSet<E,T>
         None
     }
 
+    /// Swap 2 positions of data through index.It's useful while making a 'group'.
+    /// # Panics
+    /// Panic if index is out of range.
     pub fn swap_by_index(&mut self,index_a : usize,index_b : usize) {
         if index_a == index_b { return; }
         if index_a >= self.len() {
@@ -69,12 +105,15 @@ impl<E,T> SparseSet<E,T>
         self.data.swap(index_a,index_b);
     }
 
+    /// Swap 2 positions of data through id.It's useful while making a 'group'.
+    /// # Panics
+    /// Panic if id doesn't exist in sparse set.
     pub fn swap_by_entity(&mut self,entity_a : E,entity_b : E) {
         if !self.exist(entity_a) {
-            panic!("entity_a is not exist in sparse set");
+            panic!("entity_a doesn't exist in sparse set");
         }
         if !self.exist(entity_b) {
-            panic!("entity_b is not exist in sparse set");
+            panic!("entity_b doesn't exist in sparse set");
         }
         let entity_a : usize = entity_a.into();
         let entity_b : usize = entity_b.into();
@@ -121,10 +160,12 @@ impl<E,T> SparseSet<E,T>
         len
     }
 
+    /// Get the length of sparse set
     pub fn len(&self) -> usize {
         self.entities.len()
     }
 
+    /// Check if id exists in sparse set
     pub fn exist(&self,entity : E) -> bool {
         let entity : usize = entity.into();
         if entity < self.indices.len()  {
@@ -134,6 +175,8 @@ impl<E,T> SparseSet<E,T>
         }
     }
 
+    /// Get a reference of data of Id.
+    /// Return None if Id doesn't exist in sparse set.
     pub fn get(&self,entity : E) -> Option<&T> {
         let entity : usize = entity.into();
         if entity< self.indices.len() {
@@ -144,6 +187,9 @@ impl<E,T> SparseSet<E,T>
         }
         None
     }
+
+    /// Get a mutable reference of data of Id.
+    /// Return None if Id doesn't exist in sparse set.
     pub fn get_mut(&mut self,entity : E) -> Option<&mut T> {
         let entity : usize = entity.into();
         if entity < self.indices.len() {
@@ -155,6 +201,8 @@ impl<E,T> SparseSet<E,T>
         None
     }
 
+    /// Get index from entity Id.
+    /// Return None if Id doesn't exist in sparse set.
     pub fn get_index(&self,entity : E) -> Option<usize> {
         let entity : usize = entity.into();
         if entity < self.indices.len() {
@@ -165,27 +213,38 @@ impl<E,T> SparseSet<E,T>
         None
     }
 
+    /// Check sparse set is empty.
     pub fn is_empty(&self) -> bool {
         self.entities.len() == 0
     }
 
+    /// Get the slice of indices.
     pub fn indices(&self) -> &[Option<NonZeroUsize>] {
         self.indices.as_slice()
     }
 
+    /// Get the slice of entities
     pub fn entities(&self) -> &[E] {
         self.entities.as_slice()
     }
 
-    pub fn entities_mut(&mut self) -> &mut [E] {
+    /// Get the mutable slice of entities.
+    /// # Safety
+    /// * Change the entities may destroy the sparse set rules.
+    /// * Change the entities may destroy the relationship of data and Id.
+    pub unsafe fn entities_mut(&mut self) -> &mut [E] {
         self.entities.as_mut_slice()
     }
 
+    /// Get the slice of data
     pub fn data(&self) -> &[T] {
         self.data.as_slice()
     }
 
-    pub fn data_mut(&mut self) -> &mut [T] {
+    /// Get the mutable slice of entities.
+    /// # Safety
+    /// * Change the data may destroy the relationship of data and Id.
+    pub unsafe fn data_mut(&mut self) -> &mut [T] {
         self.data.as_mut_slice()
     }
 
