@@ -1,33 +1,7 @@
-//! # XSparseSet
-//! sparse set is a data-structure with fast iteration and getting data from sparse ID
-//! # sparse set
-//! Sparse set has 2 arrays,the sparse array 'S' and dense array 'D'.
-//! The 'S' and 'D' array must satisfy 2 rules :
-//! * ```S[ID] == index```
-//! * ```D[index] = ID``` <br>
-//! These 2 rules make us get data from ID quickly and we can store all data densely.
-//! # Details
-//! Because we need store data and entity ID. XSparseSet has 3 arrays , "indices" "entities" and "data".
-//! * indices : the sparse array
-//! * entities : the dense array
-//! * data : the dense array
-//! # Examples
-//! ```
-//! # use xsparseset::SparseSet;
-//! let mut sparse_set = SparseSet::new();
-//! sparse_set.add(4,'c');
-//! sparse_set.add(7,'a');
-//! assert_eq!(sparse_set.get(4),Some(&'c'));
-//! assert_eq!(sparse_set.get(5),None);
-//! ```
 use std::num::NonZeroUsize;
 
-/// the sparse set
-/// ### Details
-/// E is the type of ID.<br>
-/// E must be ```Into<usize>``` because it need be index of Vec.
 #[derive(Debug,Clone)]
-pub struct SparseSet<E,T>
+pub(in crate) struct SparseSet<E,T>
     where E : Copy + Into<usize>,
           T : Sized{
     pub (in crate) indices : Vec<Option<NonZeroUsize>>,
@@ -39,7 +13,6 @@ impl<E,T> SparseSet<E,T>
     where E : Copy + Into<usize>,
           T : Sized {
 
-    /// Create a empty sparse set
     pub fn new() -> Self {
         SparseSet{
             indices: vec![],
@@ -48,9 +21,12 @@ impl<E,T> SparseSet<E,T>
         }
     }
 
-    /// Add an entity with data into sparse set.
-    /// ### Details
-    /// Overwrite if entity already exists in sparse set.
+    pub fn clear(&mut self){
+        self.indices.clear();
+        self.entities.clear();
+        self.data.clear();
+    }
+
     pub fn add(&mut self,entity : E,data : T) {
         let entity_ : usize = entity.into();
         //enlarge sparse
@@ -62,16 +38,33 @@ impl<E,T> SparseSet<E,T>
             //overwrite
             self.data[index.get() - 1] = data;
         }else{
-            //have not yet
+            //not yet exist
             self.indices[entity_] = NonZeroUsize::new(self.entities.len() + 1);
             self.entities.push(entity);
             self.data.push(data);
         }
     }
 
-    /// Remove an entity from sparse set.
-    /// ### Details
-    /// return None if entity doesn't exist in sparse set.
+    pub fn add_batch(&mut self,entities : &[E],mut data : Vec<T>) {
+        assert_eq!(entities.len(),data.len());
+        let start_index = self.entities.len();
+        // copy data to dense
+        self.entities.extend_from_slice(entities);
+        self.data.append(&mut data);
+        // store data in sparse
+        for (index,entity) in entities.iter().enumerate() {
+            let entity_ : usize = (*entity).into();
+            // enlarge sparse
+            while self.indices.len() <= entity_ {
+                self.indices.push(None);
+            }
+            // store index to sparse
+            self.indices[entity_] = Some(unsafe {
+                NonZeroUsize::new_unchecked(start_index + index + 1)
+            });
+        }
+    }
+
     pub fn remove(&mut self,entity : E) -> Option<T> {
         let entity : usize = entity.into();
         if self.indices.len() < entity {
@@ -87,10 +80,7 @@ impl<E,T> SparseSet<E,T>
         None
     }
 
-    /// Swap 2 positions of data through index.It's useful while making a 'group'.
-    /// # Panics
-    /// Panic if index is out of range.
-    pub fn swap_by_index(&mut self,index_a : usize,index_b : usize) {
+    pub(in crate) fn swap_by_index(&mut self,index_a : usize,index_b : usize) {
         if index_a == index_b { return; }
         if index_a >= self.len() {
             panic!("index_a={} is out of range",index_a);
@@ -105,15 +95,13 @@ impl<E,T> SparseSet<E,T>
         self.data.swap(index_a,index_b);
     }
 
-    /// Swap 2 positions of data through id.It's useful while making a 'group'.
-    /// # Panics
-    /// Panic if id doesn't exist in sparse set.
-    pub fn swap_by_entity(&mut self,entity_a : E,entity_b : E) {
+    #[allow(unused)]
+    pub(in crate) fn swap_by_entity(&mut self,entity_a : E,entity_b : E) {
         if !self.exist(entity_a) {
-            panic!("entity_a doesn't exist in sparse set");
+            panic!("entity_a is not exist in sparse set");
         }
         if !self.exist(entity_b) {
-            panic!("entity_b doesn't exist in sparse set");
+            panic!("entity_b is not exist in sparse set");
         }
         let entity_a : usize = entity_a.into();
         let entity_b : usize = entity_b.into();
@@ -125,47 +113,10 @@ impl<E,T> SparseSet<E,T>
         self.data.swap(index_a,index_b);
     }
 
-    /// Build a group in the longer one's ```index``` position
-    /// it return the length of group
-    /// Ai: 0 1 2 3 4 5 6 7 8 9
-    /// A : x x x x a b c d x x
-    /// B :         a b c d x
-    /// Bi:         0 1 2 3 4
-    /// ## Panics:
-    /// Panic if index is out of the bound of the longer one
-    pub fn make_group_in<U : Sized>(&mut self,other : &mut SparseSet<E,U>,index : usize) -> usize{
-        let mut len = 0;
-        let mut index = index;
-        if self.len() > other.len() {
-            for index_b in 0..other.len() {
-                let entity_id = unsafe { other.entities.get_unchecked(index_b) };
-                if let Some(index_a) = self.get_index(*entity_id) {
-                    self.swap_by_index(index,index_a);
-                    other.swap_by_index(index_b,len);
-                    len += 1;
-                    index += 1;
-                }
-            }
-        }else{
-            for index_a in 0..self.len() {
-                let entity_id = unsafe { self.entities.get_unchecked(index_a) };
-                if let Some(index_b) = other.get_index(*entity_id) {
-                    self.swap_by_index(len,index_a);
-                    other.swap_by_index(index_b,index);
-                    len += 1;
-                    index += 1;
-                }
-            }
-        }
-        len
-    }
-
-    /// Get the length of sparse set
     pub fn len(&self) -> usize {
         self.entities.len()
     }
 
-    /// Check if id exists in sparse set
     pub fn exist(&self,entity : E) -> bool {
         let entity : usize = entity.into();
         if entity < self.indices.len()  {
@@ -175,8 +126,6 @@ impl<E,T> SparseSet<E,T>
         }
     }
 
-    /// Get a reference of data of Id.
-    /// Return None if Id doesn't exist in sparse set.
     pub fn get(&self,entity : E) -> Option<&T> {
         let entity : usize = entity.into();
         if entity< self.indices.len() {
@@ -188,8 +137,12 @@ impl<E,T> SparseSet<E,T>
         None
     }
 
-    /// Get a mutable reference of data of Id.
-    /// Return None if Id doesn't exist in sparse set.
+    pub unsafe fn get_unchecked(&self,entity : E) -> &T {
+        let entity : usize = entity.into();
+        let index = self.indices.get_unchecked(entity).unwrap().get();
+        self.data.get_unchecked(index - 1)
+    }
+
     pub fn get_mut(&mut self,entity : E) -> Option<&mut T> {
         let entity : usize = entity.into();
         if entity < self.indices.len() {
@@ -201,8 +154,12 @@ impl<E,T> SparseSet<E,T>
         None
     }
 
-    /// Get index from entity Id.
-    /// Return None if Id doesn't exist in sparse set.
+    pub unsafe fn get_unchecked_mut(&mut self,entity : E) -> &mut T {
+        let entity : usize = entity.into();
+        let index = self.indices.get_unchecked(entity).unwrap().get();
+        self.data.get_unchecked_mut(index - 1)
+    }
+
     pub fn get_index(&self,entity : E) -> Option<usize> {
         let entity : usize = entity.into();
         if entity < self.indices.len() {
@@ -213,60 +170,36 @@ impl<E,T> SparseSet<E,T>
         None
     }
 
-    /// Check sparse set is empty.
     pub fn is_empty(&self) -> bool {
         self.entities.len() == 0
     }
 
-    /// Get the slice of indices.
+    #[allow(unused)]
     pub fn indices(&self) -> &[Option<NonZeroUsize>] {
         self.indices.as_slice()
     }
 
-    /// Get the slice of entities
     pub fn entities(&self) -> &[E] {
         self.entities.as_slice()
     }
 
-    /// Get the mutable slice of entities.
-    /// # Safety
-    /// * Change the entities may destroy the sparse set rules.
-    /// * Change the entities may destroy the relationship of data and Id.
-    pub unsafe fn entities_mut(&mut self) -> &mut [E] {
+    #[allow(unused)]
+    pub fn entities_mut(&mut self) -> &mut [E] {
         self.entities.as_mut_slice()
     }
 
-    /// Get the slice of data
     pub fn data(&self) -> &[T] {
         self.data.as_slice()
     }
 
-    /// Get the mutable slice of entities.
-    /// # Safety
-    /// * Change the data may destroy the relationship of data and Id.
-    pub unsafe fn data_mut(&mut self) -> &mut [T] {
+    pub fn data_mut(&mut self) -> &mut [T] {
         self.data.as_mut_slice()
-    }
-
-    pub fn entity_iter(&self) -> impl Iterator<Item=(E,&T)> {
-        self.entities
-            .iter()
-            .map(|x|*x)
-            .zip(self.data
-                .iter())
-    }
-    pub fn entity_iter_mut(&mut self) -> impl Iterator<Item=(E,&mut T)> {
-        self.entities
-            .iter()
-            .map(|x|*x)
-            .zip(self.data
-                .iter_mut())
     }
 }
 
 #[cfg(test)]
 mod tests{
-    use crate::SparseSet;
+    use crate::sparse_set::SparseSet;
 
     #[test]
     fn basic_test(){
@@ -323,56 +256,18 @@ mod tests{
         assert_eq!(s1.data(),&['d','c','b','a']);
         println!("{:?}",s1);
     }
-    #[test]
-    fn iter_test(){
-        let mut ss = SparseSet::new();
-        ss.add(3usize,'a');
-        ss.add(4,'b');
-        ss.add(7,'c');
-        ss.add(1,'d');
-        ss.add(2,'e');
-
-        {
-            let mut itr = ss.entity_iter();
-            assert_eq!(itr.next(), Some((3, &'a')));
-            assert_eq!(itr.next(), Some((4, &'b')));
-            assert_eq!(itr.next(), Some((7, &'c')));
-            assert_eq!(itr.next(), Some((1, &'d')));
-            assert_eq!(itr.next(), Some((2, &'e')));
-            assert_eq!(itr.next(), None);
-        }
-        {
-            let mut itr = ss.entity_iter_mut();
-            if let Some((_, ch)) = itr.next() {
-                *ch = '1';
-            } else {
-                panic!();
-            }
-        }
-        assert_eq!(ss.data().first().unwrap(),&'1');
-    }
 
     #[test]
-    fn group_test(){
-        let mut ss1 = SparseSet::new();
-        ss1.add(3usize,'a');
-        ss1.add(4,'b');
-        ss1.add(7,'c');
-        ss1.add(1,'d');
-        ss1.add(2,'e');
+    fn batch() {
+        let mut s = SparseSet::new();
+        let entities = [2_usize,5,3,4];
+        let data = vec!['a','b','c','d'];
+        s.add_batch(&entities,data);
+        println!("{:?}",s);
 
-        let mut ss2 = SparseSet::new();
-        ss2.add(2usize,1);
-        ss2.add(1,3);
-        ss2.add(3,5);
-        ss2.add(5,7);
-
-        let len = ss1.make_group_in(&mut ss2,1);
-        println!("{:?}",ss1.entities());
-        println!("   {:?}",ss2.entities());
-        println!("{}",len);
-        assert_eq!(ss1.entities(),[7,2,1,3,4]);
-        assert_eq!(ss2.entities(),[2,1,3,5]);
-        assert_eq!(len,3);
+        let entities = [1_usize,6];
+        let data = vec!['e','f'];
+        s.add_batch(&entities,data);
+        println!("{:?}",s);
     }
 }
