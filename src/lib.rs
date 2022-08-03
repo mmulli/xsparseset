@@ -32,7 +32,7 @@ where
         self.data.clear();
     }
 
-    /// Insert the dat with id to
+    /// Insert the `dat` with `id` into sparse set
     /// # return
     /// It returns Some(T) if sparse set has this id ,
     /// otherwise returns None
