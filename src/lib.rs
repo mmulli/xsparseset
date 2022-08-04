@@ -204,7 +204,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::num::NonZeroUsize;
+    use std::{num::NonZeroUsize, mem::take};
+    use rand::{thread_rng, Rng};
+
     use crate::{SparseSet, sparse_storage::VecStorage};
 
     type EntityId = NonZeroUsize;
@@ -247,6 +249,47 @@ mod tests {
         assert_eq!(sparse_set.data(),&['b']);
         assert_eq!(sparse_set.ids(),&[id]);
 
-        todo!()
+        // remove this one
+        assert_eq!(sparse_set.remove(id),Some('b'));
+
+        assert!(!sparse_set.contains(id));
+        assert_eq!(sparse_set.len(),0);
+        assert!(sparse_set.is_empty());
+        assert!(sparse_set.data().is_empty());
+        assert!(sparse_set.ids().is_empty());
+
+        // remove twice
+        assert_eq!(sparse_set.remove(id),None);
+
+        assert!(!sparse_set.contains(id));
+        assert_eq!(sparse_set.len(),0);
+        assert!(sparse_set.is_empty());
+        assert!(sparse_set.data().is_empty());
+        assert!(sparse_set.ids().is_empty());
+
+        // generate a lot of ids'
+        let mut rng = thread_rng();
+        let mut set = std::collections::BTreeSet::new();
+        // generate unique id
+        let ids = 
+            std::iter::from_fn(move || {
+                Some((rng.gen_range(1000..100000),rng.gen_range('a'..='z')))
+            }).take_while(|(x,_)|{
+                if set.contains(x) {
+                    false
+                } else {
+                    set.insert(*x);
+                    true
+                }
+            })
+            .map(|(x,c)| (NonZeroUsize::new(x).unwrap(),c))
+            .take(1000);
+        
+        for (id,c) in ids {
+            assert_eq!(sparse_set.insert(id,c),None);
+        }
+            
+        
+        
     }
 }
