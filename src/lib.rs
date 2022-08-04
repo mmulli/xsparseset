@@ -1,8 +1,13 @@
+//! # XSparseSet
+//! Sparse is a data-structure that can get data by dispersed ID and cache-friendly
 mod sparse_storage;
 
 use std::num::NonZeroUsize;
 
-pub use sparse_storage::SparseStorage;
+pub use sparse_storage::{
+    SparseStorage,
+    VecWrapper
+};
 
 #[derive(Debug, Clone)]
 pub struct SparseSet<E, T, S> {
@@ -11,17 +16,32 @@ pub struct SparseSet<E, T, S> {
     data: Vec<T>,
 }
 
-impl<E, T, S> SparseSet<E, T, S>
+impl<E,T,S> Default for SparseSet<E,T,S>
 where
     E: Copy,
-    S: SparseStorage<EntityId = E> + Default,
+    S: SparseStorage<EntityId = E> + Default
 {
-    /// Creata an empty SparseSet
-    pub fn new() -> Self {
+    fn default() -> Self {
         SparseSet {
             sparse: S::default(),
             dense: Vec::new(),
             data: Vec::new(),
+        }
+    }
+}
+
+
+impl<E, T, S> SparseSet<E, T, S>
+where
+    E: Copy,
+    S: SparseStorage<EntityId = E>,
+{
+    /// Create sparse set with sparse storage
+    pub fn with_storage(sparse_storage : S) -> Self {
+        SparseSet {
+            sparse: sparse_storage,
+            dense: Vec::new(),
+            data: Vec::new()
         }
     }
 
@@ -184,8 +204,49 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::num::NonZeroUsize;
+    use crate::{SparseSet, sparse_storage::VecStorage};
+
+    type EntityId = NonZeroUsize;
+
     #[test]
-    fn basic_test() {
-        assert!(2 == 2);
+    fn interface_test() {
+        let mut sparse_set : SparseSet<EntityId, char, VecStorage<EntityId>> = SparseSet::default();
+
+        assert_eq!(sparse_set.len(),0);
+        assert!(sparse_set.is_empty());
+        assert!(sparse_set.data().is_empty());
+        assert!(sparse_set.ids().is_empty());
+
+        let id = NonZeroUsize::new(124).unwrap();
+
+        assert_eq!(sparse_set.remove(id),None);
+        assert!(!sparse_set.contains(id));
+        assert_eq!(sparse_set.len(),0);
+        assert!(sparse_set.is_empty());
+        assert!(sparse_set.data().is_empty());
+        assert!(sparse_set.ids().is_empty());
+
+        // insert
+        assert_eq!(sparse_set.insert(id, 'c'),None);
+
+        assert_eq!(sparse_set.len(),1);
+        assert!(!sparse_set.is_empty());
+        assert_eq!(sparse_set.get(id).copied(),Some('c'));
+        assert!(sparse_set.contains(id));
+        assert_eq!(sparse_set.data(),&['c']);
+        assert_eq!(sparse_set.ids(),&[id]);
+
+        // insert again to change the value
+        assert_eq!(sparse_set.insert(id,'b'),Some('c'));
+        
+        assert_eq!(sparse_set.len(),1);
+        assert!(!sparse_set.is_empty());
+        assert_eq!(sparse_set.get(id).copied(),Some('b'));
+        assert!(sparse_set.contains(id));
+        assert_eq!(sparse_set.data(),&['b']);
+        assert_eq!(sparse_set.ids(),&[id]);
+
+        todo!()
     }
 }

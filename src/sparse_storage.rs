@@ -48,9 +48,18 @@ where E : Hash + Eq + Copy{
     }
 }
 
-/// To make the Vec Rank up
+/// To make the Vec Rank up and avoid the warning
 /// VecWrapeer :: T -> U -> VecWrapper
-pub struct VecWrapper<T,U>(Vec<T>,PhantomData<U>);
+#[derive(Debug,Clone)]
+pub struct VecWrapper<T,E>(Vec<T>,PhantomData<E>);
+
+impl<T,E> Default for VecWrapper<T,E> {
+    fn default() -> Self {
+        Self(Default::default(), Default::default())
+    }
+}
+
+pub type VecStorage<E> = VecWrapper<Option<NonZeroUsize>,E>;
 
 impl<E> SparseStorage for VecWrapper<Option<NonZeroUsize>,E>
 where E : Into<usize> + Copy {
