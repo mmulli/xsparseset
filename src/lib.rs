@@ -137,6 +137,7 @@ where
         self.dense.len()
     }
 
+    /// Check sparse set is empty
     pub fn is_empty(&self) -> bool {
         self.dense.is_empty()
     }
