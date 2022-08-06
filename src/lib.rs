@@ -4,10 +4,7 @@ mod sparse_storage;
 
 use std::num::NonZeroUsize;
 
-pub use sparse_storage::{
-    SparseStorage,
-    VecWrapper
-};
+pub use sparse_storage::{SparseStorage, VecWrapper, VecStorage};
 
 #[derive(Debug, Clone)]
 pub struct SparseSet<E, T, S> {
@@ -16,10 +13,10 @@ pub struct SparseSet<E, T, S> {
     data: Vec<T>,
 }
 
-impl<E,T,S> Default for SparseSet<E,T,S>
+impl<E, T, S> Default for SparseSet<E, T, S>
 where
     E: Copy,
-    S: SparseStorage<EntityId = E> + Default
+    S: SparseStorage<EntityId = E> + Default,
 {
     fn default() -> Self {
         SparseSet {
@@ -30,18 +27,17 @@ where
     }
 }
 
-
 impl<E, T, S> SparseSet<E, T, S>
 where
     E: Copy,
     S: SparseStorage<EntityId = E>,
 {
     /// Create sparse set with sparse storage
-    pub fn with_storage(sparse_storage : S) -> Self {
+    pub fn with_storage(sparse_storage: S) -> Self {
         SparseSet {
             sparse: sparse_storage,
             dense: Vec::new(),
-            data: Vec::new()
+            data: Vec::new(),
         }
     }
 
@@ -146,41 +142,36 @@ where
     }
 
     /// Check if the sparse set has id
-    pub fn contains(&self,id: E) -> bool {
+    pub fn contains(&self, id: E) -> bool {
         self.sparse.get_index(id).is_some()
     }
 
     /// Get the reference of data by given `id`
     /// # Returns
     /// Return None if sparse set doesn't contain this `id`
-    pub fn get(&self,id: E) -> Option<&T> {
+    pub fn get(&self, id: E) -> Option<&T> {
         let index = self.sparse.get_index(id)?.get() - 1;
         // Safety
         // The index stored in sparse is always in range
-        unsafe {
-            Some(self.data.get_unchecked(index))
-        }
+        unsafe { Some(self.data.get_unchecked(index)) }
     }
 
     /// Get the MUTABLE reference by data by given `id`
     /// # Returns
     /// Return None if sparse set doesn't contain this `id`
-    pub fn get_mut(&mut self,id: E) -> Option<&mut T> {
+    pub fn get_mut(&mut self, id: E) -> Option<&mut T> {
         let index = self.get_index(id)?;
         // Safety
         // The index stored in sparse is always in range
-        unsafe {
-            Some(self.data.get_unchecked_mut(index))
-        }
+        unsafe { Some(self.data.get_unchecked_mut(index)) }
     }
 
     /// Get the index of the entity was given by `id` in sparse set
     /// # Returns
     /// Return None if sparse set doesn't contain this `id`
-    pub fn get_index(&mut self,id : E) -> Option<usize> {
+    pub fn get_index(&mut self, id: E) -> Option<usize> {
         self.sparse.get_index(id).map(|x| x.get() - 1)
     }
-
 
     /// Get the slice of data
     pub fn data(&self) -> &[T] {
@@ -204,65 +195,65 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::{num::NonZeroUsize, mem::take};
     use rand::{thread_rng, Rng};
+    use std::num::NonZeroUsize;
 
-    use crate::{SparseSet, sparse_storage::VecStorage};
+    use crate::{sparse_storage::VecStorage, SparseSet};
 
     type EntityId = NonZeroUsize;
 
     #[test]
     fn interface_test() {
-        let mut sparse_set : SparseSet<EntityId, char, VecStorage<EntityId>> = SparseSet::default();
+        let mut sparse_set: SparseSet<EntityId, char, VecStorage<EntityId>> = SparseSet::default();
 
-        assert_eq!(sparse_set.len(),0);
+        assert_eq!(sparse_set.len(), 0);
         assert!(sparse_set.is_empty());
         assert!(sparse_set.data().is_empty());
         assert!(sparse_set.ids().is_empty());
 
         let id = NonZeroUsize::new(124).unwrap();
 
-        assert_eq!(sparse_set.remove(id),None);
+        assert_eq!(sparse_set.remove(id), None);
         assert!(!sparse_set.contains(id));
-        assert_eq!(sparse_set.len(),0);
+        assert_eq!(sparse_set.len(), 0);
         assert!(sparse_set.is_empty());
         assert!(sparse_set.data().is_empty());
         assert!(sparse_set.ids().is_empty());
 
         // insert
-        assert_eq!(sparse_set.insert(id, 'c'),None);
+        assert_eq!(sparse_set.insert(id, 'c'), None);
 
-        assert_eq!(sparse_set.len(),1);
+        assert_eq!(sparse_set.len(), 1);
         assert!(!sparse_set.is_empty());
-        assert_eq!(sparse_set.get(id).copied(),Some('c'));
+        assert_eq!(sparse_set.get(id).copied(), Some('c'));
         assert!(sparse_set.contains(id));
-        assert_eq!(sparse_set.data(),&['c']);
-        assert_eq!(sparse_set.ids(),&[id]);
+        assert_eq!(sparse_set.data(), &['c']);
+        assert_eq!(sparse_set.ids(), &[id]);
 
         // insert again to change the value
-        assert_eq!(sparse_set.insert(id,'b'),Some('c'));
-        
-        assert_eq!(sparse_set.len(),1);
+        assert_eq!(sparse_set.insert(id, 'b'), Some('c'));
+
+        assert_eq!(sparse_set.len(), 1);
         assert!(!sparse_set.is_empty());
-        assert_eq!(sparse_set.get(id).copied(),Some('b'));
+        assert_eq!(sparse_set.get(id).copied(), Some('b'));
         assert!(sparse_set.contains(id));
-        assert_eq!(sparse_set.data(),&['b']);
-        assert_eq!(sparse_set.ids(),&[id]);
+        assert_eq!(sparse_set.data(), &['b']);
+        assert_eq!(sparse_set.ids(), &[id]);
 
         // remove this one
-        assert_eq!(sparse_set.remove(id),Some('b'));
+        assert_eq!(sparse_set.remove(id), Some('b'));
 
         assert!(!sparse_set.contains(id));
-        assert_eq!(sparse_set.len(),0);
+        assert_eq!(sparse_set.len(), 0);
         assert!(sparse_set.is_empty());
         assert!(sparse_set.data().is_empty());
         assert!(sparse_set.ids().is_empty());
 
         // remove twice
-        assert_eq!(sparse_set.remove(id),None);
+        assert_eq!(sparse_set.remove(id), None);
 
         assert!(!sparse_set.contains(id));
-        assert_eq!(sparse_set.len(),0);
+        assert_eq!(sparse_set.len(), 0);
         assert!(sparse_set.is_empty());
         assert!(sparse_set.data().is_empty());
         assert!(sparse_set.ids().is_empty());
@@ -270,26 +261,27 @@ mod tests {
         // generate a lot of ids'
         let mut rng = thread_rng();
         let mut set = std::collections::BTreeSet::new();
+        let count = 10000;
         // generate unique id
-        let ids = 
-            std::iter::from_fn(move || {
-                Some((rng.gen_range(1000..100000),rng.gen_range('a'..='z')))
-            }).take_while(|(x,_)|{
-                if set.contains(x) {
-                    false
-                } else {
-                    set.insert(*x);
-                    true
-                }
-            })
-            .map(|(x,c)| (NonZeroUsize::new(x).unwrap(),c))
-            .take(1000);
-        
-        for (id,c) in ids {
-            assert_eq!(sparse_set.insert(id,c),None);
+        let ids = std::iter::from_fn(move || {
+            Some((rng.gen_range(1000..100000), rng.gen_range('a'..='z')))
+        })
+        .filter(|(x, _)| {
+            if set.contains(x) {
+                false
+            } else {
+                set.insert(*x);
+                true
+            }
+        })
+        .map(|(x, c)| (NonZeroUsize::new(x).unwrap(), c))
+        .take(count);
+
+        for (id, c) in ids {
+            assert_eq!(sparse_set.insert(id, c), None);
+            assert_eq!(sparse_set.get(id).copied(), Some(c));
         }
-            
-        
-        
+
+        assert_eq!(sparse_set.len(),count);
     }
 }
