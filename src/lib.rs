@@ -170,7 +170,7 @@ where
     /// Get the index of the entity was given by `id` in sparse set
     /// # Returns
     /// Return None if sparse set doesn't contain this `id`
-    pub fn get_index(&mut self, id: E) -> Option<usize> {
+    pub fn get_index(&self, id: E) -> Option<usize> {
         self.sparse.get_index(id).map(|x| x.get() - 1)
     }
 
@@ -261,28 +261,19 @@ mod tests {
 
         // generate a lot of ids'
         let mut rng = thread_rng();
-        let mut set = std::collections::BTreeSet::new();
-        let count = 10000;
+        let count = 100000;
         // generate unique id
         let ids = std::iter::from_fn(move || {
             Some((rng.gen_range(1000..100000), rng.gen_range('a'..='z')))
-        })
-        .filter(|(x, _)| {
-            if set.contains(x) {
-                false
-            } else {
-                set.insert(*x);
-                true
-            }
         })
         .map(|(x, c)| (NonZeroUsize::new(x).unwrap(), c))
         .take(count);
 
         for (id, c) in ids {
-            assert_eq!(sparse_set.insert(id, c), None);
+            sparse_set.insert(id, c);
+            assert!(sparse_set.contains(id));
             assert_eq!(sparse_set.get(id).copied(), Some(c));
         }
 
-        assert_eq!(sparse_set.len(),count);
     }
 }
