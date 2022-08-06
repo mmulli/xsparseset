@@ -78,7 +78,7 @@ where E : Into<usize> + Copy {
 
     fn set_index(&mut self, entity_id: Self::EntityId, index : Option<NonZeroUsize>) {
         let entity_id : usize = entity_id.into();
-        if entity_id > self.0.len() {
+        if entity_id >= self.0.len() {
             self.0.resize(entity_id + 1, None);
         }
         *unsafe { self.0.get_unchecked_mut(entity_id) } = index;
