@@ -16,6 +16,8 @@ pub trait SparseStorage {
     fn set_index(&mut self, entity_id: Self::EntityId, index : Option<NonZeroUsize>);
 
     /// set a batch of indices
+    /// # Remarks
+    /// * The index must be continuous and start from `start_index`
     fn set_indices(&mut self,entity_ids: &[Self::EntityId], start_index: NonZeroUsize) {
         let mut index = start_index.get();
         for id in entity_ids {
