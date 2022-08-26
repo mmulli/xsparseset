@@ -68,6 +68,24 @@ where
         }
     }
 
+    /// Insert a lot of data
+    /// # Panics
+    /// * `ids.len() != data.len()`
+    pub fn insert_batch(&mut self,ids: &mut Vec<E>,data: &mut Vec<T>) {
+        if ids.len() != data.len() {
+            panic!("ids.len() != dat.len()")
+        }
+        let start_index = self.data.len() + 1;
+        // # Safety
+        // * the index stored in sparse is start from 1
+        let start_index  = unsafe {
+            NonZeroUsize::new_unchecked(start_index)
+        };
+        self.sparse.set_indices(&ids, start_index);
+        self.dense.append(ids);
+        self.data.append(data);
+    }
+
     /// Remove from sparse set
     /// # return
     /// It returns Some(T) if sparse set has this id ,
@@ -275,5 +293,10 @@ mod tests {
             assert_eq!(sparse_set.get(id).copied(), Some(c));
         }
 
+    }
+
+    #[test]
+    fn batch_test() {
+        
     }
 }
