@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::btree_map::Range;
 use std::hash::Hash;
 use std::marker::PhantomData;
 use std::num::NonZeroUsize;
@@ -13,6 +14,15 @@ pub trait SparseStorage {
 
     /// set the entity mapping to index
     fn set_index(&mut self, entity_id: Self::EntityId, index : Option<NonZeroUsize>);
+
+    /// set a batch of indices
+    fn set_indices(&mut self,entity_ids: &[Self::EntityId], start_index: NonZeroUsize) {
+        let mut index = start_index.get();
+        for id in entity_ids {
+            self.set_index(*id, NonZeroUsize::new(index));
+            index += 1;
+        }
+    }
 
     /// Clear itself
     fn clear(&mut self);
