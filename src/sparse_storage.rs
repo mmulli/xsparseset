@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-use std::collections::btree_map::Range;
+use std::collections::{HashMap, BTreeMap};
 use std::hash::Hash;
 use std::marker::PhantomData;
 use std::num::NonZeroUsize;
@@ -60,6 +59,27 @@ where E : Hash + Eq + Copy{
     }
 }
 
+
+impl<E> SparseStorage for BTreeMap<E,NonZeroUsize> 
+where E : Ord + Copy{
+    type EntityId = E;
+
+    fn get_index(&self, entity_id: Self::EntityId) -> Option<NonZeroUsize> {
+        self.get(&entity_id).copied()
+    }
+
+    fn set_index(&mut self, entity_id: Self::EntityId, index : Option<NonZeroUsize>) {
+        if let Some(index) = index {
+            self.insert(entity_id, index);
+        } else {
+            self.remove(&entity_id);
+        }
+    }
+
+    fn clear(&mut self){
+        self.clear();
+    }
+}
 /// To make the Vec Rank up and avoid the warning
 /// VecWrapeer :: T -> U -> VecWrapper
 #[derive(Debug,Clone)]
