@@ -1,11 +1,12 @@
 //! # XSparseSet
-//! Sparse is a data-structure that can get data by dispersed ID and cache-friendly
+//! Sparse-set is a data-structure that can get data by dispersed ID and cache-friendly
 mod sparse_storage;
 
 use std::num::NonZeroUsize;
 
 pub use sparse_storage::{SparseStorage, VecWrapper, VecStorage};
 
+/// The core struct
 #[derive(Debug, Clone)]
 pub struct SparseSet<E, T, S> {
     sparse: S,
@@ -190,6 +191,13 @@ where
     /// Return None if sparse set doesn't contain this `id`
     pub fn get_index(&self, id: E) -> Option<usize> {
         self.sparse.get_index(id).map(|x| x.get() - 1)
+    }
+
+    /// Get the Id from index
+    /// # Return
+    /// Return None if index is not valid
+    pub fn get_id(&self, index: usize) -> Option<E> {
+        self.dense.get(index).copied()
     }
 
     /// Get the slice of data
