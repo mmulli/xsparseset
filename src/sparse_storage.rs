@@ -4,6 +4,11 @@ use std::marker::PhantomData;
 use std::num::NonZeroUsize;
 
 /// A trait that can represent the storage of the Sparse Data
+/// # Remark
+/// The `get_index` and `set_index` return `Option<NonZeroUsize>`.  
+/// But the `ids` and `data` return slice with index is start from 0.  
+/// So impl this trait for your container need add 1 and convert it 
+/// to NonZeroUsize. Or just store the `NonZeroUsize` in container.
 pub trait SparseStorage {
     /// the type of Entity ID
     type EntityId : Copy;
@@ -80,8 +85,8 @@ where E : Ord + Copy{
         self.clear();
     }
 }
-/// To make the Vec Rank up and avoid the warning
-/// VecWrapeer :: T -> U -> VecWrapper
+/// To make the Vec `Rank Up` and avoid the warning  
+/// `VecWrapeer :: T -> U -> VecWrapper`
 #[derive(Debug,Clone)]
 pub struct VecWrapper<T,E>(Vec<T>,PhantomData<E>);
 
