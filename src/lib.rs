@@ -214,8 +214,9 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::{num::NonZeroUsize, collections::BTreeSet};
+
     use rand::{thread_rng, Rng};
-    use std::num::NonZeroUsize;
 
     use crate::{sparse_storage::VecStorage, SparseSet};
 
@@ -297,6 +298,40 @@ mod tests {
 
     #[test]
     fn batch_test() {
+        let mut rng = rand::thread_rng();
+        let mut sparse_set : SparseSet<EntityId, char, VecStorage<EntityId>> = SparseSet::default();
+        let mut set = BTreeSet::new();
+
+        let mut ids = Vec::new();
+        let mut data = Vec::new();
         
+        let count = 100_000;
+        for _ in 0..count {
+            'gen_data: loop {
+                let id = rng.gen_range(1..100_000_000);
+                if !set.contains(&id) {
+                    set.insert(id);
+                    let id = EntityId::new(id).unwrap();
+                    let d = rng.gen_range('a'..='z');
+                    
+                    ids.push(id);
+                    data.push(d);
+                    break 'gen_data;
+                }
+            }
+        }
+
+        let mut ids_in = ids.clone();
+        let mut data_in = data.clone();
+        sparse_set.insert_batch(&mut ids_in, &mut data_in);
+
+        assert_eq!(data.len(), sparse_set.len());
+        assert_eq!(&data,sparse_set.data());
+        
+        for (id,data) in ids.iter().zip(data.iter()) {
+            let ch = sparse_set.get(id.clone());
+            assert!(ch.is_some());
+            assert_eq!(data.clone(),ch.copied().unwrap());
+        }
     }
 }
