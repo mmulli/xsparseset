@@ -2,13 +2,16 @@
 //! Sparse-set is a data-structure that can get data by dispersed ID and cache-friendly
 mod sparse_storage;
 
-use std::{num::NonZeroUsize, collections::{HashMap, BTreeMap}};
+use std::{
+    collections::{BTreeMap, HashMap},
+    num::NonZeroUsize,
+};
 
-pub use sparse_storage::{SparseStorage, VecWrapper, VecStorage};
+pub use sparse_storage::{SparseStorage, VecStorage, VecWrapper};
 
-pub type SparseSetVec<E,T> = SparseSet<E,T,VecStorage<E>>;
-pub type SparseSetHashMap<E,T> = SparseSet<E,T,HashMap<E,T>>;
-pub type SparseSetBTreeMap<E,T> = SparseSet<E,T,BTreeMap<E,T>>;
+pub type SparseSetVec<E, T> = SparseSet<E, T, VecStorage<E>>;
+pub type SparseSetHashMap<E, T> = SparseSet<E, T, HashMap<E, T>>;
+pub type SparseSetBTreeMap<E, T> = SparseSet<E, T, BTreeMap<E, T>>;
 
 /// The core struct
 #[derive(Debug, Clone)]
@@ -76,16 +79,14 @@ where
     /// Insert a lot of data
     /// # Panics
     /// * `ids.len() != data.len()`
-    pub fn insert_batch(&mut self,ids: &mut Vec<E>,data: &mut Vec<T>) {
+    pub fn insert_batch(&mut self, ids: &mut Vec<E>, data: &mut Vec<T>) {
         if ids.len() != data.len() {
             panic!("ids.len() != dat.len()")
         }
         let start_index = self.data.len() + 1;
         // # Safety
         // * the index stored in sparse is start from 1
-        let start_index  = unsafe {
-            NonZeroUsize::new_unchecked(start_index)
-        };
+        let start_index = unsafe { NonZeroUsize::new_unchecked(start_index) };
         self.sparse.set_indices(&ids, start_index);
         self.dense.append(ids);
         self.data.append(data);
@@ -226,7 +227,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::{num::NonZeroUsize, collections::BTreeSet};
+    use std::{collections::BTreeSet, num::NonZeroUsize};
 
     use rand::{thread_rng, Rng};
 
@@ -305,18 +306,17 @@ mod tests {
             assert!(sparse_set.contains(id));
             assert_eq!(sparse_set.get(id).copied(), Some(c));
         }
-
     }
 
     #[test]
     fn batch_test() {
         let mut rng = rand::thread_rng();
-        let mut sparse_set : SparseSet<EntityId, char, VecStorage<EntityId>> = SparseSet::default();
+        let mut sparse_set: SparseSet<EntityId, char, VecStorage<EntityId>> = SparseSet::default();
         let mut set = BTreeSet::new();
 
         let mut ids = Vec::new();
         let mut data = Vec::new();
-        
+
         let count = 100_000;
         for _ in 0..count {
             'gen_data: loop {
@@ -325,7 +325,7 @@ mod tests {
                     set.insert(id);
                     let id = EntityId::new(id).unwrap();
                     let d = rng.gen_range('a'..='z');
-                    
+
                     ids.push(id);
                     data.push(d);
                     break 'gen_data;
@@ -338,12 +338,12 @@ mod tests {
         sparse_set.insert_batch(&mut ids_in, &mut data_in);
 
         assert_eq!(data.len(), sparse_set.len());
-        assert_eq!(&data,sparse_set.data());
-        
-        for (id,data) in ids.iter().zip(data.iter()) {
+        assert_eq!(&data, sparse_set.data());
+
+        for (id, data) in ids.iter().zip(data.iter()) {
             let ch = sparse_set.get(id.clone());
             assert!(ch.is_some());
-            assert_eq!(data.clone(),ch.copied().unwrap());
+            assert_eq!(data.clone(), ch.copied().unwrap());
         }
     }
 }
