@@ -7,7 +7,7 @@ use std::{
     num::NonZeroUsize,
 };
 
-pub use sparse_storage::{SparseStorage, VecStorage, VecWrapper};
+pub use sparse_storage::{SparseStorage, VecStorage};
 
 pub type SparseSetVec<E, T> = SparseSet<E, T, VecStorage<E>>;
 pub type SparseSetHashMap<E, T> = SparseSet<E, T, HashMap<E, T>>;
