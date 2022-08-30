@@ -12,11 +12,15 @@ pub use sparse_storage::{SparseStorage, VecStorage};
 /// SparseSet with `Vec` as SparseStorage
 pub type SparseSetVec<E, T> = SparseSet<E, T, VecStorage<E>>;
 /// SparseSet with `HashMap` as SparseStorage
-pub type SparseSetHashMap<E, T> = SparseSet<E, T, HashMap<E, T>>;
+pub type SparseSetHashMap<E, T> = SparseSet<E, T, HashMap<E, NonZeroUsize>>;
 /// SparseSet with `BTreeMap` as SparseStorage
-pub type SparseSetBTreeMap<E, T> = SparseSet<E, T, BTreeMap<E, T>>;
+pub type SparseSetBTreeMap<E, T> = SparseSet<E, T, BTreeMap<E, NonZeroUsize>>;
 
 /// The core struct
+/// # Type parameters
+/// * `E` is the type of entity id
+/// * `T` is the type of the data stored in `SparseSet`
+/// * `S` is the type of the sparse storage
 #[derive(Debug, Clone)]
 pub struct SparseSet<E, T, S> {
     sparse: S,
