@@ -2,9 +2,13 @@
 //! Sparse-set is a data-structure that can get data by dispersed ID and cache-friendly
 mod sparse_storage;
 
-use std::num::NonZeroUsize;
+use std::{num::NonZeroUsize, collections::{HashMap, BTreeMap}};
 
 pub use sparse_storage::{SparseStorage, VecWrapper, VecStorage};
+
+pub type SparseSetVec<E,T> = SparseSet<E,T,VecStorage<E>>;
+pub type SparseSetHashMap<E,T> = SparseSet<E,T,HashMap<E,T>>;
+pub type SparseSetBTreeMap<E,T> = SparseSet<E,T,BTreeMap<E,T>>;
 
 /// The core struct
 #[derive(Debug, Clone)]
