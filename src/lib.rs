@@ -9,8 +9,11 @@ use std::{
 
 pub use sparse_storage::{SparseStorage, VecStorage};
 
+/// SparseSet with `Vec` as SparseStorage
 pub type SparseSetVec<E, T> = SparseSet<E, T, VecStorage<E>>;
+/// SparseSet with `HashMap` as SparseStorage
 pub type SparseSetHashMap<E, T> = SparseSet<E, T, HashMap<E, T>>;
+/// SparseSet with `BTreeMap` as SparseStorage
 pub type SparseSetBTreeMap<E, T> = SparseSet<E, T, BTreeMap<E, T>>;
 
 /// The core struct
