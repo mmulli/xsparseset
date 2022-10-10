@@ -16,7 +16,7 @@ fn insert_batch(criterion: &mut Criterion) {
     let mut ids = Vec::new();
     let mut data = Vec::new();
 
-    let count = 1_000_000;
+    let count = 1_000;
     for _ in 0..count {
         'gen_data: loop {
             let id = rng.gen_range(1..100_000_000);
@@ -64,7 +64,7 @@ fn insert_batch(criterion: &mut Criterion) {
 fn insert(criterion: &mut Criterion) {
     let mut rng = rand::thread_rng();
 
-    let count = 1_000_000;
+    let count = 1_000;
     let data_gen_iter =
         std::iter::from_fn(move || Some((rng.gen_range(1000..100000), rng.gen_range('a'..='z'))))
             .map(|(x, c)| (NonZeroUsize::new(x).unwrap(), c));
