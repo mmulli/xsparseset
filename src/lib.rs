@@ -103,19 +103,27 @@ where
     /// # return
     /// It returns Some(T) if sparse set has this id ,
     /// otherwise returns None
-    pub fn remove(&mut self, id: E) -> Option<T> {
-        // swap this and the last entity to ensure the `dense` is dense
-        if let Some(last_id) = self.dense.last().copied() {
-            self.swap_by_entity_id(id, last_id);
-            self.sparse.set_index(id, None);
-            self.dense.remove(self.dense.len() - 1);
-            Some(self.data.remove(self.data.len() - 1))
-        } else {
-            None
-        }
+    pub fn swap_remove_by_id(&mut self, id: E) -> Option<T> {
+        let index = self.get_index(id)?;
+        self.swap_remove_by_index(index)
     }
 
-    /// swap 2 entites in sparse set by entity id
+    /// Remove from sparse set
+    /// # return
+    /// It returns Some(T) if index is valid,
+    /// otherwise returns None
+    pub fn swap_remove_by_index(&mut self, index: usize) -> Option<T> {
+        let id = self.get_id(index)?;
+
+        self.swap_by_index(index, self.len() - 1);
+
+        self.sparse.set_index(id,None);
+        self.dense.pop();
+        self.data.pop()
+    }
+
+
+    /// swap 2 entities in sparse set by entity id
     /// # Details
     /// Do nothing if `id_a` or `id_b` is NOT in sparse set
     pub fn swap_by_entity_id(&mut self, id_a: E, id_b: E) {
@@ -134,7 +142,7 @@ where
         }
     }
 
-    /// swap 2 entites in sparse set by index
+    /// swap 2 entities in sparse set by index
     /// # Panics
     /// Panic if index is out of range
     pub fn swap_by_index(&mut self, index_a: usize, index_b: usize) {
@@ -148,7 +156,7 @@ where
         unsafe { self.swap_by_index_unchecked(index_a, index_b) }
     }
 
-    /// swap 2 entites in sparse set by index with out any check
+    /// swap 2 entities in sparse set by index with out any check
     /// # Safety
     /// Safe only `index_a` and `index_b` is less than `self.len()`
     pub unsafe fn swap_by_index_unchecked(&mut self, index_a: usize, index_b: usize) {
@@ -253,7 +261,7 @@ mod tests {
 
         let id = NonZeroUsize::new(124).unwrap();
 
-        assert_eq!(sparse_set.remove(id), None);
+        assert_eq!(sparse_set.swap_remove_by_id(id), None);
         assert!(!sparse_set.contains(id));
         assert_eq!(sparse_set.len(), 0);
         assert!(sparse_set.is_empty());
@@ -281,7 +289,7 @@ mod tests {
         assert_eq!(sparse_set.ids(), &[id]);
 
         // remove this one
-        assert_eq!(sparse_set.remove(id), Some('b'));
+        assert_eq!(sparse_set.swap_remove_by_id(id), Some('b'));
 
         assert!(!sparse_set.contains(id));
         assert_eq!(sparse_set.len(), 0);
@@ -290,7 +298,7 @@ mod tests {
         assert!(sparse_set.ids().is_empty());
 
         // remove twice
-        assert_eq!(sparse_set.remove(id), None);
+        assert_eq!(sparse_set.swap_remove_by_id(id), None);
 
         assert!(!sparse_set.contains(id));
         assert_eq!(sparse_set.len(), 0);
