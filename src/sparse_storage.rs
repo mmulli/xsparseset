@@ -1,4 +1,5 @@
 use std::collections::{HashMap, BTreeMap};
+use std::convert::TryInto;
 use std::hash::Hash;
 use std::marker::PhantomData;
 use std::num::NonZeroUsize;
@@ -98,12 +99,31 @@ impl<T,E> Default for VecWrapper<T,E> {
 
 pub type VecStorage<E> = VecWrapper<Option<NonZeroUsize>,E>;
 
+// #TryIntoPatch -mmulli 
+fn try_into_usize<E: TryInto<usize> + Copy>(entity_id: E) -> usize {
+
+    if let Ok(val) = entity_id.try_into() {
+        val
+    }
+    else {
+        panic!("EntityID could not be converted to usize");
+    }
+}
+
 impl<E> SparseStorage for VecWrapper<Option<NonZeroUsize>,E>
-where E : Into<usize> + Copy {
+
+// #TryIntoPatch -mmulli 
+// TryInto<usize> used instead of Into<usize> so that this storage can
+// participate along side other storages from other crates that actually
+// do take advantage of TryInto<usize> for their keys. This is basically 
+// a compatibility patch that is likely exclusive to my own needs.
+// WARNING: There is a panic if Keys can't be converted to usize
+where E : TryInto<usize> + Copy {
     type EntityId = E;
 
     fn get_index(&self, entity_id: Self::EntityId) -> Option<NonZeroUsize> {
-        let entity_id : usize = entity_id.into();
+        let entity_id : usize = try_into_usize(entity_id);
+
         if entity_id < self.0.len() {
             unsafe {
                 *self.0.get_unchecked(entity_id)
@@ -114,7 +134,8 @@ where E : Into<usize> + Copy {
     }
 
     fn set_index(&mut self, entity_id: Self::EntityId, index : Option<NonZeroUsize>) {
-        let entity_id : usize = entity_id.into();
+        let entity_id : usize = try_into_usize(entity_id);
+
         if entity_id >= self.0.len() {
             self.0.resize(entity_id + 1, None);
         }
